@@ -1,0 +1,5 @@
+data/*
+snapshots/*
+runs/*
+
+*.pyc
