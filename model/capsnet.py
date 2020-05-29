@@ -340,7 +340,7 @@ class CapsNet(nn.Module):
         iters: number of EM iterations
         ...
     """
-    def __init__(self, A=32, B=32, C=32, D=32, E=10, K=3, P=4, iters=3, add_decoder=True):
+    def __init__(self, A=32, B=32, C=32, D=32, E=10, K=3, P=4, iters=3, add_decoder=True, img_dim=(28,28,1)):
         super(CapsNet, self).__init__()
         self.add_decoder = add_decoder
         
@@ -362,7 +362,7 @@ class CapsNet(nn.Module):
                 nn.ReLU(inplace=True),
                 nn.Linear(512, 1024),
                 nn.ReLU(inplace=True),
-                nn.Linear(1024, 28*28), # This must match input image dimensions
+                nn.Linear(1024, img_dim[0]*img_dim[1]*img_dim[2]), # This must match input image dimensions
                 nn.Sigmoid()
             )
 

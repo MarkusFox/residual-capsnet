@@ -30,13 +30,13 @@ class Spread(_Loss):
 
 
 class CapsuleLoss(_Loss):
-    def __init__(self, alpha, mode='bce', add_decoder=True):
+    def __init__(self, alpha, mode='bce', num_class=10, add_decoder=True):
         super(CapsuleLoss, self).__init__()
         self.alpha = alpha
         if mode == 'bce':
             self.criterion = nn.BCELoss()
         elif mode == 'spread':
-            self.criterion = Spread()
+            self.criterion = Spread(num_class=num_class)
         self.mode = mode
         self.add_decoder = add_decoder
 
@@ -48,8 +48,8 @@ class CapsuleLoss(_Loss):
 
         reconstruction_loss = 0
         if self.add_decoder and reconstructions is not None:
-            assert torch.numel(images) == torch.numel(reconstructions)
-            reconstruction_loss = torch.mean((reconstructions.view(images.shape[0],1,28,28) - images) ** 2)
+            assert torch.numel(images) == torch.numel(reconstructions), "Reconstruction dimensions do not fit input."
+            reconstruction_loss = torch.mean((reconstructions.view(images.shape) - images) ** 2)
 
         total_loss = act_loss + self.alpha * reconstruction_loss
         return act_loss, reconstruction_loss, total_loss
