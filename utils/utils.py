@@ -1,4 +1,5 @@
 import torch
+from torchvision import transforms
 import os
 import io
 import numpy as np
@@ -53,7 +54,7 @@ def calc_metrics(output, target, threshold=0.5):
     return acc, rec, f1, hamm, emr
 
 
-def log_heatmap(output, target, step):
+def log_heatmap(writer, output, target, step):
     '''
         Calculates metrics and writes a heatmap for all thresholds in range 0.1,0.2,...0.9 to TensorBoard.
     '''
@@ -72,7 +73,7 @@ def log_heatmap(output, target, step):
     buf.seek(0)
     image = Image.open(buf)
     image = transforms.ToTensor()(image)
-    test_writer.add_image('Heatmap', image, step)
+    writer.add_image('Heatmap', image, step)
     
     
 def log_reconstruction_sample(writer, originals, reconstructions, step):

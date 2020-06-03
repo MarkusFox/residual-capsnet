@@ -37,13 +37,13 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--log-interval', type=int, default=100, metavar='N',
                     help='how many batches to wait before logging training status')
-parser.add_argument('--em-iters', type=int, default=2, metavar='N',
+parser.add_argument('--em-iters', type=int, default=3, metavar='N',
                     help='iterations of EM Routing')
 parser.add_argument('--add-decoder', default=True,
                     help='adds a reconstruction network')
-parser.add_argument('--alpha', default=0.05, type=float,
+parser.add_argument('--alpha', default=2.0, type=float,
                   help='Regularization coefficient to scale down the reconstruction loss (default: 0.05)')
-parser.add_argument('--snapshot-folder', type=str, default='./snapshots/capsnetNORB-2-decoder', metavar='SF',
+parser.add_argument('--snapshot-folder', type=str, default='./snapshots/capsnetNORB-3-decoder-2,0', metavar='SF',
                     help='where to store the snapshots')
 parser.add_argument('--logdir', type=str, default='./runs', metavar='LD',
                     help='where tensorboard will write the logs')

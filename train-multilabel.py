@@ -13,8 +13,10 @@ from torch.utils.tensorboard import SummaryWriter
 
 from model import capsules
 from loss import CapsuleLoss
-from datasets.multimnist import *
 from utils import AverageMeter, exp_lr_decay, log_reconstruction_sample, log_heatmap, calc_metrics, snapshot
+
+# change this according to your dataset
+from dataset.multimnist import *
 
 
 # Training settings
@@ -25,7 +27,7 @@ parser.add_argument('--test-batch-size', type=int, default=32, metavar='N',
                     help='input batch size for testing (default: 1000)')
 parser.add_argument('--test-intvl', type=int, default=1, metavar='N',
                     help='test intvl (default: 1)')
-parser.add_argument('--epochs', type=int, default=30, metavar='N',
+parser.add_argument('--epochs', type=int, default=40, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=3e-3, metavar='LR',
                     help='learning rate (default: 0.01)') # Hinton: 3e-3, according to openreview
@@ -37,48 +39,47 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--log-interval', type=int, default=100, metavar='N',
                     help='how many batches to wait before logging training status')
-parser.add_argument('--em-iters', type=int, default=2, metavar='N',
+parser.add_argument('--em-iters', type=int, default=3, metavar='N',
                     help='iterations of EM Routing')
-parser.add_argument('--add-decoder', default=False,
+parser.add_argument('--add-decoder', default=True,
                     help='adds a reconstruction network')
-parser.add_argument('--alpha', default=1.0, type=float,
+parser.add_argument('--alpha', default=1.1, type=float,
                   help='Regularization coefficient to scale down the reconstruction loss (default: 0.0005)')
-parser.add_argument('--snapshot-folder', type=str, default='./snapshots', metavar='SF',
+parser.add_argument('--snapshot-folder', type=str, default='./snapshots/capsnet_multiMNIST-3-decoder-1,1', metavar='SF',
                     help='where to store the snapshots')
 parser.add_argument('--logdir', type=str, default='./runs', metavar='LD',
                     help='where tensorboard will write the logs')
 parser.add_argument('--data-folder', type=str, default='./data', metavar='DF',
                     help='where to store the datasets')
-parser.add_argument('--dataset', type=str, default='multimnist', metavar='D',
-                    help='dataset for training(multimnist)')
+parser.add_argument('--dataset', type=str, default='multiMNIST', metavar='D',
+                    help='dataset for training(multiMNIST)')
 
 
 def get_setting(args):
     kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
     path = os.path.join(args.data_folder, args.dataset)
-    if args.dataset == 'multimnist':
+    if args.dataset == 'multiMNIST':
         num_class = 10
+        img_dim = (48,48,1)
         train_loader = torch.utils.data.DataLoader(
-            MultiMNIST('./data/double_mnist_seed_123/double_mnist_seed_123_image_size_64_64/', mode='train',
+            MultiMNIST('./data/multi_mnist/', mode='train',
                        transform=transforms.Compose(
-                           [transforms.RandomCrop(62),
-                            transforms.Resize((48,48)),
+                           [transforms.Resize((48,48)),
                             transforms.ToTensor(),
-                            transforms.Normalize((0.0501,), (0.2010,))]
+                            transforms.Normalize((0.0447,), (0.1668,))]
                        )),
                        batch_size=args.batch_size, shuffle=True, **kwargs)
         test_loader = torch.utils.data.DataLoader(
-            MultiMNIST('./data/double_mnist_seed_123/double_mnist_seed_123_image_size_64_64/', mode='val',
+            MultiMNIST('./data/multi_mnist/', mode='val',
                        transform=transforms.Compose(
-                           [transforms.RandomCrop(62),
-                            transforms.Resize((48,48)),
+                           [transforms.Resize((48,48)),
                             transforms.ToTensor(),
-                            transforms.Normalize((0.0501,), (0.2010,))]
+                            transforms.Normalize((0.0447,), (0.1668,))]
                        )),
                        batch_size=args.test_batch_size, shuffle=False, **kwargs)
     else:
         raise NameError('Undefined dataset {}'.format(args.dataset))
-    return num_class, train_loader, test_loader
+    return num_class, img_dim, train_loader, test_loader
 
 
 def train(train_loader, model, criterion, optimizer, epoch, device):
@@ -185,7 +186,7 @@ def test(test_loader, model, criterion, step, device):
     test_writer.add_scalar('Metrics/F1-score', f1, step)
     test_writer.add_scalar('Metrics/HammingScore', hamm, step)
     test_writer.add_scalar('Metrics/ExactMatchRatio', emr, step)
-    log_heatmap(outputs, targets, step)
+    log_heatmap(test_writer, outputs, targets, step)
     
     print('\nTest set: Average loss: {:.6f}, F1-Score: {:.6f}, ExactMatch: {:.6f} \n'.format(
         test_loss, f1, emr))
@@ -208,16 +209,16 @@ def main():
     test_writer = SummaryWriter(comment='test')
     
     # dataset
-    num_class, train_loader, test_loader = get_setting(args)
+    num_class, img_dim, train_loader, test_loader = get_setting(args)
 
     # model
 #     A, B, C, D = 64, 8, 16, 16
     A, B, C, D = 32, 32, 32, 32
     model = capsules(A=A, B=B, C=C, D=D, E=num_class,
-                     iters=args.em_iters, add_decoder=args.add_decoder).to(device)
+                     iters=args.em_iters, add_decoder=args.add_decoder, img_dim=img_dim).to(device)
 
     print("Number of trainable parameters: {}".format(sum(param.numel() for param in model.parameters())))
-    criterion = CapsuleLoss(alpha=args.alpha, mode='bce', add_decoder=args.add_decoder)
+    criterion = CapsuleLoss(alpha=args.alpha, mode='bce', num_class=num_class, add_decoder=args.add_decoder)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
     best_loss, best_score = test(test_loader, model, criterion, 0, device)
