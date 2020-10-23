@@ -19,9 +19,9 @@ from utils import AverageMeter, exp_lr_decay, log_reconstruction_sample, accurac
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch Matrix-Capsules-EM')
-parser.add_argument('--batch-size', type=int, default=8, metavar='N',
+parser.add_argument('--batch-size', type=int, default=2, metavar='N',
                     help='input batch size for training (default: 128)')
-parser.add_argument('--test-batch-size', type=int, default=32, metavar='N',
+parser.add_argument('--test-batch-size', type=int, default=4, metavar='N',
                     help='input batch size for testing (default: 1000)')
 parser.add_argument('--test-intvl', type=int, default=1, metavar='N',
                     help='test intvl (default: 1)')
@@ -37,20 +37,20 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--log-interval', type=int, default=100, metavar='N',
                     help='how many batches to wait before logging training status')
-parser.add_argument('--em-iters', type=int, default=3, metavar='N',
+parser.add_argument('--em-iters', type=int, default=2, metavar='N',
                     help='iterations of EM Routing')
-parser.add_argument('--add-decoder', default=True,
+parser.add_argument('--add-decoder', default=False,
                     help='adds a reconstruction network')
-parser.add_argument('--alpha', default=2.0, type=float,
+parser.add_argument('--alpha', default=1.0, type=float,
                   help='Regularization coefficient to scale down the reconstruction loss (default: 0.05)')
-parser.add_argument('--snapshot-folder', type=str, default='./snapshots/capsnetNORB-3-decoder-2,0', metavar='SF',
+parser.add_argument('--snapshot-folder', type=str, default='./snapshots/capsnetSTL', metavar='SF',
                     help='where to store the snapshots')
 parser.add_argument('--logdir', type=str, default='./runs', metavar='LD',
                     help='where tensorboard will write the logs')
 parser.add_argument('--data-folder', type=str, default='./data', metavar='DF',
                     help='where to store the datasets')
-parser.add_argument('--dataset', type=str, default='smallNORB', metavar='D',
-                    help='dataset for training(mnist,smallNORB)')
+parser.add_argument('--dataset', type=str, default='stl10', metavar='D',
+                    help='dataset for training(mnist,smallNORB,stl10)')
 
 
 def get_setting(args):
@@ -93,6 +93,23 @@ def get_setting(args):
                           transforms.ToTensor()
                       ])),
             batch_size=args.test_batch_size, shuffle=True, **kwargs)
+    elif args.dataset == 'stl10':
+        num_class = 10
+        img_dim = (96,96,3)
+        train_loader = torch.utils.data.DataLoader(
+            datasets.STL10(path, split='test', folds=None, download=True, 
+                           transform=transforms.Compose([
+#                               transforms.RandomCrop(72),
+                              transforms.ToTensor()
+                           ])),
+            batch_size=args.batch_size, shuffle=True, **kwargs)
+        test_loader = torch.utils.data.DataLoader(
+            datasets.STL10(path, split='train', folds=None, download=True, 
+                           transform=transforms.Compose([
+#                               transforms.RandomCrop(72),
+                              transforms.ToTensor()
+                           ])),
+            batch_size=args.batch_size, shuffle=True, **kwargs)
     else:
         raise NameError('Undefined dataset {}'.format(args.dataset))
     return num_class, img_dim, train_loader, test_loader
@@ -160,6 +177,9 @@ def test(test_loader, model, criterion, step, device):
     outputs, targets = [], []
     START_FLAG = True
     with torch.no_grad():
+        test_batch_time = AverageMeter()
+        test_end = time.time()
+        
         for batch_idx, (data, target) in enumerate(test_loader):
             data, target = data.to(device), target.to(device)
             output, reconstructions = model(data)
@@ -170,6 +190,9 @@ def test(test_loader, model, criterion, step, device):
             else:
                 outputs = torch.cat([outputs, output])
                 targets = torch.cat([targets, target])
+                
+            test_batch_time.update(time.time() - test_end)
+            test_end = time.time()
                 
             if batch_idx == rand and args.add_decoder == True:
                 log_reconstruction_sample(test_writer, data, reconstructions, step)
@@ -182,8 +205,8 @@ def test(test_loader, model, criterion, step, device):
     test_writer.add_scalar('Loss/Spread', test_loss, step)
     test_writer.add_scalar('Metrics/Accuracy', score, step)
     
-    print('\nTest set: Average loss: {:.6f}, Score: {:.6f} \n'.format(
-        test_loss, score))
+    print('\nTest set: Average loss: {:.6f}, Score: {:.6f} Average Test Time {:.3f} \n'.format(
+        test_loss, score, test_batch_time.avg))
     return test_loss, score
 
 
