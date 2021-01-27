@@ -1,15 +1,30 @@
 # Residual Capsule Network - PyTorch
-PyTorch implementation of a matrix capsule network [1] with residual blocks as head for training on more complex data (STL-10).
+PyTorch implementation of a matrix capsule network [1] with residual blocks as head for successful training on more complex data (STL-10).
 
-# Introduction
-This has been part of my [master's thesis](http://todo), where more details are found.
+## Introduction
+This has been part of my [Masters thesis](http://todo). Check the full document for more details.
 
-## Architecture
-![Figure 1 from paper](examples/architecture.png)
-Residual-CapsNet layers when training the network on smallNORB or similar dataset. Additional residual blocks can be introduced if necessary.
+Five implementations were evaluated:
+- Capsnet: reproduced version of matrix capsule network [1].
+- Capsnet + Decoder: Same as above but with simple 3 layer reconstruction network added.
+- Residual-Capsnet.
+- Weak-baseline: very basic 3 layer CNN similar to AlexNet [2].
+- Strong-baseline: ResNet50 [3].
+
+## Performance
+### smallNORB classification:
+<img src="images/results_smallNORB.png" alt="smallNORB results" width="500"/>
+
+### STL10 classification:
+<img src="images/results_stl10.png" alt="stl10 results" width="500"/>
+
+<i>*network did not converge and fluctuated around random accuracy of 10%.<br>
+**due to high memory consumption we had to set batch size to 2 for this architecture.</i>
 
 # References
-[1] Hinton, G. E., Sabour, S., and Frosst, N. (2018). Matrix capsules with em routing.
+[1] Hinton, G. E., Sabour, S., and Frosst, N. (2018). Matrix capsules with em routing.<br>
+[2] Krizhevsky, A., Sutskever, I., and Hinton, G. E. (2012). Imagenet classification with deep convolutional neural networks.<br>
+[3] He, K., Zhang, X., Ren, S., and Sun, J. (2016). Deep residual learning for image recognition.
 
 # Acknowledge
 https://github.com/yl-1993/Matrix-Capsules-EM-PyTorch
