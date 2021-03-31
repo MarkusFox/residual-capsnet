@@ -2,7 +2,7 @@
 PyTorch implementation of a matrix capsule network [2] with residual blocks as head for successful training on more complex data (STL-10).
 
 ## Introduction
-This has been part of my [Masters thesis](http://todo) [1]. Check the full document for more details.
+This has been part of my [Masters thesis](https://github.com/MarkusFox/residual-capsnet/blob/master/MASTERARBEIT_62276.pdf) [1]. Check the full document for more details.
 
 Five implementations were evaluated:
 - Capsnet: reproduced version of matrix capsule network [2].
